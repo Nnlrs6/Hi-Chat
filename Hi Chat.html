@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Anonyme</title>
+  <style>
+    /* Style global */
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #1abc9c, #3498db);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .chat-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      width: 90%;
+      max-width: 600px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    .chat-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .chat-header h2 {
+      margin: 0;
+      font-size: 28px;
+      color: #333;
+    }
+    .chat-messages {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 4px;
+      background: #f9f9f9;
+    }
+    .chat-message {
+      margin-bottom: 10px;
+      animation: fadeIn 0.3s ease;
+    }
+    .chat-message span {
+      display: block;
+    }
+    .chat-message .timestamp {
+      font-size: 12px;
+      color: gray;
+    }
+    .system-message {
+      font-style: italic;
+      color: #555;
+    }
+    .chat-input {
+      display: flex;
+      margin-top: 10px;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .chat-input button {
+      padding: 10px 20px;
+      margin-left: 10px;
+      border: none;
+      background: #3498db;
+      color: white;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .chat-input button:hover {
+      background: #2980b9;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <h2>Chat Anonyme</h2>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="chat-input">
+      <input id="message-input" type="text" placeholder="Entrez votre message ici..." autofocus>
+      <button id="send-btn">Envoyer</button>
+    </div>
+  </div>
+
+  <!-- Inclusion des scripts Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script>
+    // REMARQUE : Remplacez les valeurs ci-dessous par votre configuration Firebase
+    var firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DATABASE_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+    
+    // Référence à la collection de messages
+    var messagesRef = db.ref('messages');
+
+    // Fonction pour ajouter un message dans l'affichage
+    function appendMessage(data) {
+      var messagesContainer = document.getElementById('chat-messages');
+      var messageElem = document.createElement('div');
+      messageElem.classList.add('chat-message');
+      if(data.system){
+          messageElem.classList.add('system-message');
+      }
+      var messageContent = document.createElement('span');
+      messageContent.textContent = data.message;
+      var timestampElem = document.createElement('span');
+      var ts = new Date(data.timestamp);
+      timestampElem.textContent = ts.toLocaleTimeString();
+      timestampElem.classList.add('timestamp');
+      messageElem.appendChild(messageContent);
+      messageElem.appendChild(timestampElem);
+      messagesContainer.appendChild(messageElem);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Écouter l'arrivée de nouveaux messages
+    messagesRef.on('child_added', function(snapshot) {
+      var data = snapshot.val();
+      appendMessage(data);
+    });
+
+    // Affichage d'un message de bienvenue dès le chargement
+    window.addEventListener('load', function() {
+      appendMessage({ message: 'Hi Chat', timestamp: Date.now(), system: true });
+    });
+
+    // Gestion de l'envoi du message (clic et touche Entrée)
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    document.getElementById('message-input').addEventListener('keypress', function(e) {
+      if(e.key === 'Enter'){
+        sendMessage();
+      }
+    });
+
+    function sendMessage(){
+      var input = document.getElementById('message-input');
+      var msg = input.value.trim();
+      if(msg !== ""){
+        // Enregistrement du message dans Firebase
+        messagesRef.push({
+          message: msg,
+          timestamp: Date.now(),
+          system: false
+        });
+        input.value = '';
+      }
+    }
+  </script>
+</body>
+</html>
